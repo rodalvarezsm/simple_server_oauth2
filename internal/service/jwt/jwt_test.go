@@ -31,10 +31,10 @@ func TestService_JWT(t *testing.T) {
 	verifiedToken, errVerify := s.VerifyJWT(token)
 	assert.NoError(t, errVerify)
 
-	claims, ok := verifiedToken.Claims.(gojwt.MapClaims)
+	claims1, ok := verifiedToken.Claims.(gojwt.MapClaims)
 	assert.True(t, ok)
 
-	claimExp, okExp := claims["exp"]
+	claimExp, okExp := claims1["exp"]
 	require.True(t, okExp)
 	assert.Equal(t, claimExp, float64(expiry.Unix()))
 }

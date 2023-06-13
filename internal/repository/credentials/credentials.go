@@ -1,4 +1,4 @@
-package repository
+package credentials
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 )
 
 type CredentialsStore interface {
-	GetCredentials(ctx context.Context, username string) (*model.Credentials, error)
+	GetCredentialsByUsername(ctx context.Context, username string) (*model.Credentials, error)
 }
 
 type credentialsStore struct {
@@ -18,12 +18,21 @@ type credentialsStore struct {
 }
 
 func NewCredentialsStore(logger *zap.Logger) CredentialsStore {
+	credentials := map[string]model.Credentials{
+		"usertest": {
+			Username: "usertest",
+			Password: "passtest",
+		},
+	}
 	return &credentialsStore{
-		logger: logger,
+		memoryStore: credentials,
+		logger:      logger,
 	}
 }
 
-func (c *credentialsStore) GetCredentials(ctx context.Context, username string) (*model.Credentials, error) {
-	// TODO
+func (c *credentialsStore) GetCredentialsByUsername(ctx context.Context, username string) (*model.Credentials, error) {
+	if item, found := c.memoryStore[username]; found {
+		return &item, nil
+	}
 	return nil, nil
 }

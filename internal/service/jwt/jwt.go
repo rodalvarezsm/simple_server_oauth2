@@ -3,6 +3,7 @@ package jwt
 import (
 	"crypto/rand"
 	"crypto/rsa"
+	"fmt"
 	"log"
 	"time"
 
@@ -13,29 +14,33 @@ import (
 	"simple_server_oauth2/internal/service"
 )
 
-// TODO use RSA key
-var secretKey = []byte("l9KpsdafjPkdafjdsalfmnSQvfgsg0oierpsnvs")
-
 type Service struct {
-	logger *zap.Logger
+	keysService service.KeysService
+	logger      *zap.Logger
 }
 
-func NewService(logger *zap.Logger) service.JWTService {
+type customClaims struct {
+	ClientId string `json:"clientId"`
+	gojwt.StandardClaims
+}
+
+func NewService(keysService service.KeysService, logger *zap.Logger) service.JWTService {
 	return &Service{
-		logger: logger,
+		keysService: keysService,
+		logger:      logger,
 	}
 }
 
-func (s *Service) New(username string) (string, error) {
-	token, _, err := s.generateJWT(username)
+func (s *Service) NewToken(username string) (string, *time.Time, error) {
+	token, expiry, err := s.generateJWT(username)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	return token, nil
+	return token, expiry, nil
 }
 
-func generateJWT(user string) (string, error) {
+func (s *Service) generateJWT(user string) (string, *time.Time, error) {
 	expiry := time.Now().UTC().Add(time.Hour)
 	claims := map[string]interface{}{
 		"iat": time.Now().UTC().Add(-10 * time.Second).Unix(),
@@ -48,19 +53,58 @@ func generateJWT(user string) (string, error) {
 
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
-		return "", err
+		return "", nil, err
 	}
 
-	// TODO add kid to the token
 	kid := uuid.NewString()
 	token.Header["kid"] = kid
 
-	// should sign with public or private key?
-	signedToken, err := token.SignedString(key)
-	if err != nil {
+	signedToken, errSign := token.SignedString(key)
+	if errSign != nil {
 		log.Print(err, "error signing token")
-		return "", err
+		return "", nil, err
 	}
 
-	return signedToken, nil
+	err = s.keysService.SaveKey(user, kid, *key)
+	if err != nil {
+		return "", nil, err
+	}
+	return signedToken, &expiry, nil
+}
+
+func (s *Service) VerifyJWT(t string) (*gojwt.Token, error) {
+	token, err := gojwt.Parse(t, func(token *gojwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*gojwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unauthorized")
+		}
+		kid, found := token.Header["kid"]
+		if !found {
+			return nil, fmt.Errorf("kid not found in token")
+		}
+		keyId, ok := kid.(string)
+		if !ok {
+			return nil, fmt.Errorf("convert token to string failed")
+		}
+		claims := token.Claims.(gojwt.MapClaims)
+		clientClaim, okClientClaim := claims["sub"]
+		if !okClientClaim {
+			return nil, fmt.Errorf("clientId not found in token")
+		}
+		clientId, okClientId := clientClaim.(string)
+		if !okClientId {
+			return nil, fmt.Errorf("convert clientId to string failed")
+		}
+		key, err := s.keysService.GetPublicKey(clientId, keyId)
+		if err != nil {
+			return nil, err
+		}
+		return key, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if !token.Valid {
+		return token, fmt.Errorf("unauthorized")
+	}
+	return token, nil
 }
