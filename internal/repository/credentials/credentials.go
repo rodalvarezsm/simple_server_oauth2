@@ -8,6 +8,9 @@ import (
 	"simple_server_oauth2/internal/model"
 )
 
+const CredentialsUsername = "usertest"
+const CredentialsPassword = "passtest"
+
 type CredentialsStore interface {
 	GetCredentialsByUsername(ctx context.Context, username string) (*model.Credentials, error)
 }
@@ -19,9 +22,9 @@ type credentialsStore struct {
 
 func NewCredentialsStore(logger *zap.Logger) CredentialsStore {
 	credentials := map[string]model.Credentials{
-		"usertest": {
-			Username: "usertest",
-			Password: "passtest",
+		CredentialsUsername: {
+			Username: CredentialsUsername,
+			Password: CredentialsPassword,
 		},
 	}
 	return &credentialsStore{

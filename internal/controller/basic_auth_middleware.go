@@ -32,7 +32,7 @@ func BasicAuthentication(basicAuth service.Auth, logger *zap.Logger) gin.Handler
 			return
 		}
 
-		c.Set(CLIENT_ID, username)
+		c.Set(ClientId, username)
 
 		c.Next()
 	}

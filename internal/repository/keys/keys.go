@@ -42,7 +42,7 @@ func (k *keysStore) GetPublicKeys(ctx context.Context, clientId string) ([]jwk.K
 		}
 		return publicKeys, nil
 	}
-	return nil, nil
+	return publicKeys, nil
 }
 
 func (k *keysStore) SaveKey(clientId, kid string, key rsa.PrivateKey) error {

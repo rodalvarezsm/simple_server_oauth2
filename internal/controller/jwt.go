@@ -1,19 +1,21 @@
 package controller
 
 import (
+	"fmt"
+	"io"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt"
-	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 
 	"simple_server_oauth2/internal/model"
 	"simple_server_oauth2/internal/service"
 )
 
-const CLIENT_ID = "clientId"
+const ClientId = "clientId"
 
 type JWTHandler struct {
 	service   service.JWTService
@@ -23,10 +25,6 @@ type JWTHandler struct {
 
 type HeaderAuthorization struct {
 	Authorization string `header:"Authorization" binding:"required,startswith=Basic "`
-}
-
-type InstrospectionRequest struct {
-	Token string `json:"token" binding:"required"`
 }
 
 func NewJwtHandler(s service.JWTService, b service.Auth, e *gin.Engine, l *zap.Logger) *JWTHandler {
@@ -43,7 +41,7 @@ func NewJwtHandler(s service.JWTService, b service.Auth, e *gin.Engine, l *zap.L
 }
 
 func (h *JWTHandler) generateJWT(c *gin.Context) {
-	token, expiry, errToken := h.service.NewToken(c.Value(CLIENT_ID).(string))
+	token, expiry, errToken := h.service.NewToken(c.Value(ClientId).(string))
 	if errToken != nil {
 		c.JSON(http.StatusInternalServerError, "failed creating a token")
 		return
@@ -55,15 +53,26 @@ func (h *JWTHandler) generateJWT(c *gin.Context) {
 }
 
 func (h *JWTHandler) introspect(c *gin.Context) {
-	var request InstrospectionRequest
-	err := jsoniter.NewDecoder(c.Request.Body).Decode(&request)
+	if c.Request.Body == nil {
+		h.logger.Error("introspect endpoint received an empty request body")
+		c.JSON(http.StatusBadRequest, "request body cannot be empty")
+		return
+	}
+	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		h.logger.Error("failed to decode request body", zap.Error(err))
-		c.JSON(http.StatusBadRequest, "request body could not be decoded")
+		h.logger.Error("introspect endpoint could not read the request body", zap.Error(err))
+		c.JSON(http.StatusBadRequest, "request body could not be read")
+		return
+	}
+	param := string(body)
+	bodyData := strings.Split(param, "=")
+	if len(bodyData) != 2 || bodyData[0] != "token" {
+		h.logger.Error(fmt.Sprintf("introspect endpoint could not read the token from the body: %s", param))
+		c.JSON(http.StatusBadRequest, "request body must include a token")
 		return
 	}
 
-	jwt, errVerify := h.service.VerifyJWT(request.Token, c.Value(CLIENT_ID).(string))
+	jwt, errVerify := h.service.VerifyJWT(bodyData[1], c.Value(ClientId).(string))
 	if errVerify != nil {
 		h.logger.Error("token verification failed", zap.Error(errVerify))
 		c.JSON(http.StatusOK, buildInactiveResponse())

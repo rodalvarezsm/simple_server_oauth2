@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/lestrrat-go/jwx/jwk"
 	"go.uber.org/zap"
 
 	"simple_server_oauth2/internal/service"
@@ -28,12 +29,14 @@ func NewPublicKeysHandler(s service.KeysService, b service.Auth, e *gin.Engine, 
 }
 
 func (h *PublicKeysHandler) getPublicKeys(c *gin.Context) {
-	keys, errKeys := h.service.GetPublicKeys(c, c.Value(CLIENT_ID).(string))
+	keys, errKeys := h.service.GetPublicKeys(c, c.Value(ClientId).(string))
 	if errKeys != nil {
 		c.JSON(http.StatusInternalServerError, "failed getting the list of keys")
 		return
 	}
-
+	if keys == nil {
+		keys = []jwk.Key{}
+	}
 	c.JSON(http.StatusOK, keys)
 	return
 
