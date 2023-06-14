@@ -2,38 +2,32 @@ package controller
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 
-	"simple_server_oauth2/internal/model"
 	"simple_server_oauth2/internal/service"
 )
 
-type JWTHandler struct {
-	service   service.JWTService
+type PublicKeysHandler struct {
+	service   service.KeysService
 	basicAuth service.Auth
 	logger    *zap.Logger
 }
 
-type HeaderAuthorization struct {
-	Authorization string `header:"Authorization" binding:"required,startswith=Basic "`
-}
-
-func NewJwtHandler(s service.JWTService, b service.Auth, e *gin.Engine, l *zap.Logger) *JWTHandler {
-	h := &JWTHandler{
+func NewPublicKeysHandler(s service.KeysService, b service.Auth, e *gin.Engine, l *zap.Logger) *PublicKeysHandler {
+	h := &PublicKeysHandler{
 		service:   s,
 		basicAuth: b,
 		logger:    l,
 	}
 
-	e.POST("/token", h.generateJWT)
+	e.POST("/jwks", h.getPublicKeys)
 
 	return h
 }
 
-func (h *JWTHandler) generateJWT(c *gin.Context) {
+func (h *PublicKeysHandler) getPublicKeys(c *gin.Context) {
 	var req HeaderAuthorization
 	if err := c.ShouldBindHeader(&req); err != nil {
 		h.logger.Error("parse request failed", zap.Error(err))
@@ -56,22 +50,13 @@ func (h *JWTHandler) generateJWT(c *gin.Context) {
 	}
 
 	if authenticated {
-		token, expiry, errToken := h.service.NewToken(username)
-		if errToken != nil {
-			c.JSON(http.StatusInternalServerError, "failed creating a token")
+		keys, errKeys := h.service.GetPublicKeys(c, username)
+		if errKeys != nil {
+			c.JSON(http.StatusInternalServerError, "failed getting the list of keys")
 			return
 		}
 
-		c.JSON(http.StatusOK, buildResponse(token, *expiry))
+		c.JSON(http.StatusOK, keys)
 		return
-	}
-}
-
-func buildResponse(token string, expiry time.Time) model.TokenResponse {
-	return model.TokenResponse{
-		AccessToken: token,
-		Scope:       "all",
-		TokenType:   "Bearer",
-		Expiry:      expiry.String(),
 	}
 }

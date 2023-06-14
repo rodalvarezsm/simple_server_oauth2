@@ -21,16 +21,17 @@ func main() {
 		panic(fmt.Errorf("unable to load zap logger, error: %v", err))
 	}
 
-	r := gin.Default()
+	e := gin.Default()
 	credRepo := credentialsRepo.NewCredentialsStore(logger)
 	credService := credentials.NewCredentialsService(credRepo, logger)
 	basicAuthService := basicauth.NewService(credService, logger)
 	keysRepo := keysRepository.NewKeysStore(logger)
 	keysService := keys.NewService(keysRepo, logger)
 	jwtService := jwt.NewService(keysService, logger)
-	controller.NewJwtHandler(jwtService, basicAuthService, r, logger)
+	controller.NewJwtHandler(jwtService, basicAuthService, e, logger)
+	controller.NewPublicKeysHandler(keysService, basicAuthService, e, logger)
 
-	err = r.Run()
+	err = e.Run()
 	if err != nil {
 		panic(fmt.Errorf("unable to load gin engine, error: %v", err))
 	}

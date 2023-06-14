@@ -6,6 +6,8 @@ import (
 	"crypto/rsa"
 	"time"
 
+	"github.com/lestrrat-go/jwx/jwk"
+
 	"simple_server_oauth2/internal/model"
 )
 
@@ -23,7 +25,7 @@ type CredentialsService interface {
 }
 
 type KeysService interface {
-	GetPublicKeys(ctx context.Context, clientId string) ([]model.Key, error)
+	GetPublicKeys(ctx context.Context, clientId string) ([]jwk.Key, error)
 	SaveKey(clientId, kid string, key rsa.PrivateKey) error
 	GetPublicKey(clientId, kid string) (crypto.PublicKey, error)
 }

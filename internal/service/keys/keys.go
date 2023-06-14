@@ -5,9 +5,9 @@ import (
 	"crypto"
 	"crypto/rsa"
 
+	"github.com/lestrrat-go/jwx/jwk"
 	"go.uber.org/zap"
 
-	"simple_server_oauth2/internal/model"
 	keysRepository "simple_server_oauth2/internal/repository/keys"
 	"simple_server_oauth2/internal/service"
 )
@@ -24,8 +24,9 @@ func NewService(keysStore keysRepository.KeysStore, logger *zap.Logger) service.
 	}
 }
 
-func (k *keysService) GetPublicKeys(ctx context.Context, clientId string) ([]model.Key, error) {
-	return nil, nil
+func (k *keysService) GetPublicKeys(ctx context.Context, clientId string) ([]jwk.Key, error) {
+	keys, err := k.keysStore.GetPublicKeys(ctx, clientId)
+	return keys, err
 }
 
 func (k *keysService) SaveKey(clientId, kid string, key rsa.PrivateKey) error {

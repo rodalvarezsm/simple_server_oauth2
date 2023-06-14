@@ -6,13 +6,14 @@ import (
 	"crypto/rsa"
 	"fmt"
 
+	"github.com/lestrrat-go/jwx/jwk"
 	"go.uber.org/zap"
 
 	"simple_server_oauth2/internal/model"
 )
 
 type KeysStore interface {
-	GetPublicKeys(ctx context.Context, clientId string) ([]model.Key, error)
+	GetPublicKeys(ctx context.Context, clientId string) ([]jwk.Key, error)
 	SaveKey(clientId, kid string, key rsa.PrivateKey) error
 	GetPublicKey(clientId, kid string) (crypto.PublicKey, error)
 }
@@ -29,9 +30,17 @@ func NewKeysStore(logger *zap.Logger) KeysStore {
 	}
 }
 
-func (k *keysStore) GetPublicKeys(ctx context.Context, clientId string) ([]model.Key, error) {
+func (k *keysStore) GetPublicKeys(ctx context.Context, clientId string) ([]jwk.Key, error) {
+	var publicKeys []jwk.Key
 	if items, found := k.memoryStore[clientId]; found {
-		return items, nil
+		for _, item := range items {
+			key, err := jwk.New(item.RSAKey)
+			if err != nil {
+				return nil, err
+			}
+			publicKeys = append(publicKeys, key)
+		}
+		return publicKeys, nil
 	}
 	return nil, nil
 }
@@ -43,6 +52,7 @@ func (k *keysStore) SaveKey(clientId, kid string, key rsa.PrivateKey) error {
 	}
 	if _, found := k.memoryStore[clientId]; !found {
 		k.memoryStore[clientId] = []model.Key{newKey}
+		return nil
 	}
 	k.memoryStore[clientId] = append(k.memoryStore[clientId], newKey)
 	return nil
