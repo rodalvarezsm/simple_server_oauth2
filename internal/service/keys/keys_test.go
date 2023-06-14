@@ -27,6 +27,11 @@ func Test_GetPublicKeys(t *testing.T) {
 	}
 
 	clientId := "client-one"
+
+	noKeys, errNoKeys := s.GetPublicKeys(context.Background(), clientId)
+	require.NoError(t, errNoKeys)
+	assert.Equal(t, 0, len(noKeys))
+
 	kid1 := uuid.NewString()
 	key, err := rsa.GenerateKey(rand.Reader, 2048)
 	require.NoError(t, err)
@@ -57,4 +62,32 @@ func Test_GetPublicKeys(t *testing.T) {
 	keys, errGet = s.GetPublicKeys(context.Background(), clientId2)
 	require.NoError(t, errGet)
 	assert.Equal(t, 2, len(keys))
+}
+
+func Test_GetPublicKey(t *testing.T) {
+	core, _ := observer.New(zapcore.DebugLevel)
+	logger := zap.New(core)
+
+	keysRepo := keysRepository.NewKeysStore(logger)
+	s := keysService{
+		keysStore: keysRepo,
+		logger:    logger,
+	}
+
+	clientId := "client-one"
+	kid := uuid.NewString()
+
+	noKey, errNoKey := s.GetPublicKey(clientId, kid)
+	require.Error(t, errNoKey)
+	assert.Nil(t, noKey)
+
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	require.NoError(t, err)
+	errSave := s.SaveKey(clientId, kid, *key)
+	require.NoError(t, errSave)
+
+	publicKey, errGet := s.GetPublicKey(clientId, kid)
+	require.NoError(t, errGet)
+	require.NotNil(t, publicKey)
+	assert.Equal(t, key.Public(), publicKey)
 }

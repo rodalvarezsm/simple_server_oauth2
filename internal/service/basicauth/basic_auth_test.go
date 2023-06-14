@@ -1,10 +1,17 @@
 package basicauth
 
 import (
+	"context"
 	"encoding/base64"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest/observer"
+
+	credentialsRepository "simple_server_oauth2/internal/repository/credentials"
+	"simple_server_oauth2/internal/service/credentials"
 )
 
 func Test_parseBasicAuth(t *testing.T) {
@@ -60,6 +67,45 @@ func Test_parseBasicAuth(t *testing.T) {
 			assert.Equal(t, tt.wantPassword, gotPassword)
 		})
 	}
+}
+
+func TestService_Authenticate(t *testing.T) {
+	core, _ := observer.New(zapcore.DebugLevel)
+	logger := zap.New(core)
+
+	credsRepo := credentialsRepository.NewCredentialsStore(logger)
+	credentials := credentials.NewCredentialsService(credsRepo, logger)
+	s := NewService(credentials, logger)
+
+	authenticate, err := s.Authenticate(context.Background(), "usertest", "passtest")
+	assert.NoError(t, err)
+	assert.True(t, authenticate)
+}
+
+func TestService_Authenticate_No_Credentials_Found(t *testing.T) {
+	core, _ := observer.New(zapcore.DebugLevel)
+	logger := zap.New(core)
+
+	credsRepo := credentialsRepository.NewCredentialsStore(logger)
+	credentials := credentials.NewCredentialsService(credsRepo, logger)
+	s := NewService(credentials, logger)
+
+	authenticate, err := s.Authenticate(context.Background(), "wrong-user", "passtest")
+	assert.Error(t, err)
+	assert.False(t, authenticate)
+}
+
+func TestService_Authenticate_Wrong_Password(t *testing.T) {
+	core, _ := observer.New(zapcore.DebugLevel)
+	logger := zap.New(core)
+
+	credsRepo := credentialsRepository.NewCredentialsStore(logger)
+	credentials := credentials.NewCredentialsService(credsRepo, logger)
+	s := NewService(credentials, logger)
+
+	authenticate, err := s.Authenticate(context.Background(), "usertest", "wrong-pass")
+	assert.Error(t, err)
+	assert.False(t, authenticate)
 }
 
 func encodeBase64(s string) string {
