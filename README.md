@@ -2,15 +2,51 @@
 
 #### Grant endpoint
 
-/token
+`POST /token`
 
 Grant type used is client credentials. ClientId and ClientSecret are sent in Authorization header (Basic Authentication). Scope is always "all".
 
+Example request
+
+`curl -v -H "Authorization: Basic dXNlcnRlc3Q6cGFzc3Rlc3Q=" -X POST localhost:8080/token`
+
 #### List of public keys
 
-/jwks
+`POST /jwks`
 
 Uses Basic Authentication. Expects the same credentials as the Grant Endpoint, as it uses ClientId to identify which keys to list.
+
+Example request
+
+`curl -v -H "Authorization: Basic dXNlcnRlc3Q6cGFzc3Rlc3Q=" -X POST localhost:8080/jwks`
+
+#### Introspection endpoint
+
+`POST /token_info`
+
+Requires the parameter "token".
+
+Uses Basic Authentication. Expects the same credentials as the Grant Endpoint, as it uses ClientId to identify which keys to list.
+
+Responses
+
+In case of success
+```json
+{
+  "active": true,
+  "client_id": string,
+  "expiry": int64
+}
+```
+
+In case of non-valid token, expired or issued for another client
+
+```json
+{
+  "active": false
+}
+```
+
 
 #### Future improvements
 
