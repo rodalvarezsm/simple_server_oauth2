@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: simple-server-oauth2
+  namespace: simpleserveroauth2  # Add the namespace here
+spec:
+  type: LoadBalancer  # Use LoadBalancer for cloud environments
+  ports:
+    - port: 80
+      targetPort: 8080
+  selector:
+    app: simple-server-oauth2-app

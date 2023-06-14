@@ -59,6 +59,12 @@ go build cmd/main.go
 .\main.exe
 ```
 
+Docker
+```
+docker build -t "simple_server_oauth2" .
+docker run -p 8080:8080 simple_server_oauth2
+```
+
 #### Future improvements
 
 - Credentials: add an endpoint to store credentials (right now only one pair is available and is hardcoded).

@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: simple-server-oauth2-app-deployment
+  namespace: simpleserveroauth2  # Add the namespace here
+  labels:
+    app: simple-server-oauth2-app # Same as selector.app in service.yaml
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: flask-app
+  template:
+    metadata:
+      labels:
+        app: simple-server-oauth2-app
+    spec:
+      containers:
+        - name: simple-server-oauth2-app
+          image: rodalvarezsm/simple_server_oauth2:latest
+          ports:
+            - containerPort: 8080
