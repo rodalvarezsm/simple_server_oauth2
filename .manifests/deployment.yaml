@@ -9,7 +9,7 @@ spec:
   replicas: 3
   selector:
     matchLabels:
-      app: flask-app
+      app: simple-server-oauth2-app
   template:
     metadata:
       labels:
