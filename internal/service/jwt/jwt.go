@@ -72,7 +72,7 @@ func (s *Service) generateJWT(user string) (string, *time.Time, error) {
 	return signedToken, &expiry, nil
 }
 
-func (s *Service) VerifyJWT(t string) (*gojwt.Token, error) {
+func (s *Service) VerifyJWT(t, clientId string) (*gojwt.Token, error) {
 	token, err := gojwt.Parse(t, func(token *gojwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*gojwt.SigningMethodRSA); !ok {
 			return nil, fmt.Errorf("unauthorized")
@@ -90,11 +90,11 @@ func (s *Service) VerifyJWT(t string) (*gojwt.Token, error) {
 		if !okClientClaim {
 			return nil, fmt.Errorf("clientId not found in token")
 		}
-		clientId, okClientId := clientClaim.(string)
+		clientInfo, okClientId := clientClaim.(string)
 		if !okClientId {
 			return nil, fmt.Errorf("convert clientId to string failed")
 		}
-		key, err := s.keysService.GetPublicKey(clientId, keyId)
+		key, err := s.keysService.GetPublicKey(clientInfo, keyId)
 		if err != nil {
 			return nil, err
 		}
@@ -105,6 +105,11 @@ func (s *Service) VerifyJWT(t string) (*gojwt.Token, error) {
 	}
 	if !token.Valid {
 		return token, fmt.Errorf("unauthorized")
+	}
+	tokenClaims := token.Claims.(gojwt.MapClaims)
+	clientFromToken := tokenClaims["sub"].(string)
+	if clientFromToken != clientId {
+		return token, fmt.Errorf("token belongs to another clientId")
 	}
 	return token, nil
 }
