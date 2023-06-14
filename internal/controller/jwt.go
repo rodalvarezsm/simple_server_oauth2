@@ -13,6 +13,8 @@ import (
 	"simple_server_oauth2/internal/service"
 )
 
+const CLIENT_ID = "clientId"
+
 type JWTHandler struct {
 	service   service.JWTService
 	basicAuth service.Auth
@@ -41,70 +43,27 @@ func NewJwtHandler(s service.JWTService, b service.Auth, e *gin.Engine, l *zap.L
 }
 
 func (h *JWTHandler) generateJWT(c *gin.Context) {
-	var req HeaderAuthorization
-	if err := c.ShouldBindHeader(&req); err != nil {
-		h.logger.Error("parse request failed", zap.Error(err))
-		c.JSON(http.StatusUnauthorized, "access not authorized")
+	token, expiry, errToken := h.service.NewToken(c.Value(CLIENT_ID).(string))
+	if errToken != nil {
+		c.JSON(http.StatusInternalServerError, "failed creating a token")
 		return
 	}
 
-	username, password, err := h.basicAuth.ParseBasicAuthCredentials(req.Authorization)
-	if err != nil {
-		h.logger.Error("failed to parse credentials", zap.Error(err))
-		c.JSON(http.StatusUnauthorized, "access not authorized")
-		return
-	}
+	c.JSON(http.StatusOK, buildTokenResponse(token, *expiry))
+	return
 
-	authenticated, errAuth := h.basicAuth.Authenticate(c, username, password)
-	if errAuth != nil {
-		h.logger.Error("failed to authenticate credentials", zap.Error(err))
-		c.JSON(http.StatusUnauthorized, "access not authorized")
-		return
-	}
-
-	if authenticated {
-		token, expiry, errToken := h.service.NewToken(username)
-		if errToken != nil {
-			c.JSON(http.StatusInternalServerError, "failed creating a token")
-			return
-		}
-
-		c.JSON(http.StatusOK, buildTokenResponse(token, *expiry))
-		return
-	}
 }
 
 func (h *JWTHandler) introspect(c *gin.Context) {
-	var req HeaderAuthorization
-	if err := c.ShouldBindHeader(&req); err != nil {
-		h.logger.Error("parse request failed", zap.Error(err))
-		c.JSON(http.StatusUnauthorized, "access not authorized")
-		return
-	}
-
-	username, password, err := h.basicAuth.ParseBasicAuthCredentials(req.Authorization)
-	if err != nil {
-		h.logger.Error("failed to parse credentials", zap.Error(err))
-		c.JSON(http.StatusUnauthorized, "access not authorized")
-		return
-	}
-
-	_, errAuth := h.basicAuth.Authenticate(c, username, password)
-	if errAuth != nil {
-		h.logger.Error("failed to authenticate credentials", zap.Error(err))
-		c.JSON(http.StatusUnauthorized, "access not authorized")
-		return
-	}
-
 	var request InstrospectionRequest
-	err = jsoniter.NewDecoder(c.Request.Body).Decode(&request)
+	err := jsoniter.NewDecoder(c.Request.Body).Decode(&request)
 	if err != nil {
 		h.logger.Error("failed to decode request body", zap.Error(err))
 		c.JSON(http.StatusBadRequest, "request body could not be decoded")
 		return
 	}
 
-	jwt, errVerify := h.service.VerifyJWT(request.Token, username)
+	jwt, errVerify := h.service.VerifyJWT(request.Token, c.Value(CLIENT_ID).(string))
 	if errVerify != nil {
 		h.logger.Error("token verification failed", zap.Error(errVerify))
 		c.JSON(http.StatusOK, buildInactiveResponse())

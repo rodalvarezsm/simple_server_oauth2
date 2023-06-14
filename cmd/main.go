@@ -25,6 +25,7 @@ func main() {
 	credRepo := credentialsRepo.NewCredentialsStore(logger)
 	credService := credentials.NewCredentialsService(credRepo, logger)
 	basicAuthService := basicauth.NewService(credService, logger)
+	e.Use(controller.BasicAuthentication(basicAuthService, logger))
 	keysRepo := keysRepository.NewKeysStore(logger)
 	keysService := keys.NewService(keysRepo, logger)
 	jwtService := jwt.NewService(keysService, logger)
