@@ -24,7 +24,11 @@ Example request
 
 `POST /token_info`
 
-Requires the parameter "token".
+Requires the parameter "token" in the body.
+
+Example request (change token for the one to inspect)
+
+`curl -v -H "Authorization: Basic dXNlcnRlc3Q6cGFzc3Rlc3Q=" -X POST -d "token=eyJhbGciOiJSUzI1NiIsImtpZCI6IjhjOTQxYTNkLTM2NmItNDRlMC05ZTQ4LTlkYzUyOGVjNWZhOSIsInR5cCI6IkpXVCJ9.eyJleHAiOjE2ODY3NzI0NDcsImlhdCI6MTY4Njc2ODgzNywianRpIjoiYzVhYzczMDEtNzUxMC00MzE3LWEyNTEtOTI4NWViNzY0OWRiIiwic3ViIjoidXNlcnRlc3QifQ.Er705r45eeu_o1QsGftHOnJ88DQTE0-cxuE_CIApe3fBAGRKVTNvUjVVavUHOcsPdaOWOXdWu5Fk_Fm08PuGov2H5PCx0w1tSAYse2G-08J6ITPagkRedJtctjMYhSuWbqsVUj9MUHEp_4QTY-4DUcEfghsuvCVRqA-TcCdnm7v-q1jt3af2e77Ljsz0-HKh3_HR_SqUwbeiluW3DNfcrqTBomDRggK9QRJyCEQGAyesF6th-_7TAzemEupfyUcgZQR6QTiJuubP7DsJ5ambSIAnNLnlicJ0Q-YGXOFqcqj7Uki99pb2YuV0Su5y4jvFkrBKsQnNsVaHq2sKph5L0g" localhost:8080/token_info`
 
 Uses Basic Authentication. Expects the same credentials as the Grant Endpoint, as it uses ClientId to identify which keys to list.
 
@@ -60,6 +64,7 @@ go build cmd/main.go
 - Credentials: add an endpoint to store credentials (right now only one pair is available and is hardcoded).
 - Key management: right now the app generates a new key pair for each token request. It would be better to have a set 
 of key pairs stored and pick from them.
+- Add a store for issued tokens.
 - Use a store that is not in-memory.
 - Using cache.
 - Ability to revoke a token.
