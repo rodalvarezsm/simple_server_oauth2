@@ -68,6 +68,7 @@ docker run -p 8080:8080 simple_server_oauth2
 #### Future improvements
 
 - Credentials: add an endpoint to store credentials (right now only one pair is available and is hardcoded).
+- Use Argon2 to hash credentials' password in the store.
 - Key management: right now the app generates a new key pair for each token request. It would be better to have a set 
 of key pairs stored and pick from them.
 - Add a store for issued tokens.
