@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/alexedwards/argon2id"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 
@@ -36,11 +37,14 @@ func (s *Service) Authenticate(ctx context.Context, username, password string) (
 		return false, fmt.Errorf("get credentials failed: no credentials found")
 	}
 
-	// TODO: password should be hashed
-	if password == creds.Password {
-		return true, nil
+	match, errCompare := argon2id.ComparePasswordAndHash(password, creds.Password)
+	if errCompare != nil {
+		return false, fmt.Errorf("could not compare password and hash: %v", errCompare)
 	}
-	return false, fmt.Errorf("credentials do not match")
+	if !match {
+		return false, fmt.Errorf("credentials do not match")
+	}
+	return true, nil
 }
 
 func (s *Service) ParseBasicAuthCredentials(credentials string) (username, password string, err error) {

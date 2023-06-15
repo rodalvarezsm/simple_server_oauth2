@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/alexedwards/argon2id"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -31,6 +32,8 @@ func TestCredentialsService_GetCredentials(t *testing.T) {
 		assert.NoError(t, err)
 		require.NotNil(t, getCredentials)
 		assert.Equal(t, "usertest", getCredentials.Username)
-		assert.Equal(t, "passtest", getCredentials.Password)
+		match, errCompare := argon2id.ComparePasswordAndHash("passtest", getCredentials.Password)
+		assert.NoError(t, errCompare)
+		assert.True(t, match)
 	})
 }
