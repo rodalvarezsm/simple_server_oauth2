@@ -3,6 +3,7 @@ package credentials
 import (
 	"context"
 
+	"github.com/alexedwards/argon2id"
 	"go.uber.org/zap"
 
 	"simple_server_oauth2/internal/model"
@@ -21,10 +22,14 @@ type credentialsStore struct {
 }
 
 func NewCredentialsStore(logger *zap.Logger) CredentialsStore {
+	hash, err := argon2id.CreateHash(CredentialsPassword, argon2id.DefaultParams)
+	if err != nil {
+		panic("could not hash password to store credentials")
+	}
 	credentials := map[string]model.Credentials{
 		CredentialsUsername: {
 			Username: CredentialsUsername,
-			Password: CredentialsPassword,
+			Password: hash,
 		},
 	}
 	return &credentialsStore{
